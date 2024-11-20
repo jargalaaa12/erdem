@@ -309,5 +309,63 @@ def count_all():
         'team_count': team_count,
         'player_count': player_count
     }), 200
+@app.route('/all_data', methods=['GET'])
+def get_all_data():
+    conn = sqlite3.connect('sports.db')
+    cursor = conn.cursor()
+
+    # Get all sport types
+    cursor.execute("SELECT * FROM sport_type")
+    sport_types = cursor.fetchall()
+
+    result = []
+
+    # For each sport type, fetch related teams and players
+    for sport_type in sport_types:
+        sport_type_id = sport_type[0]
+        sport_type_name = sport_type[1]
+
+        # Get all teams for the current sport type
+        cursor.execute("SELECT * FROM team WHERE sport_type_id = ?", (sport_type_id,))
+        teams = cursor.fetchall()
+
+        team_list = []
+
+        # For each team, fetch related players
+        for team in teams:
+            team_id = team[0]
+            team_name = team[1]
+            established_date = team[2]
+
+            # Get all players for the current team
+            cursor.execute("SELECT * FROM player WHERE team_id = ?", (team_id,))
+            players = cursor.fetchall()
+
+            player_list = []
+            for player in players:
+                player_list.append({
+                    'id': player[0],
+                    'playerName': player[1],
+                    'number': player[2],
+                    'gender': player[3],
+                    'dateOfBirth': player[4]
+                })
+
+            team_list.append({
+                'id': team_id,
+                'teamName': team_name,
+                'establishedDate': established_date,
+                'players': player_list
+            })
+
+        result.append({
+            'id': sport_type_id,
+            'sportType': sport_type_name,
+            'teams': team_list
+        })
+
+    conn.close()
+
+    return jsonify(result), 200
 if __name__ == '__main__':
     app.run(debug=True)
